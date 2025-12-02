@@ -11,16 +11,24 @@ def solve_part1(line: str) -> int:
         minr = int(s[0])
         maxr = int(s[1])
         for i in range(minr, maxr+1):
-            if not valid_id(i):
+            if not valid_id_simple(i):
                 invalid_sum += i
     return invalid_sum
 
 @runner("Day 2", "Part 2")
 def solve_part2(line: str) -> int:
     """part 2 solving function"""
-    return 0
+    invalid_sum = 0
+    for r in line.split(","):
+        s = r.split("-")
+        minr = int(s[0])
+        maxr = int(s[1])
+        for i in range(minr, maxr+1):
+            if not valid_id_complex(i):
+                invalid_sum += i
+    return invalid_sum
 
-def valid_id(i: int) -> bool:
+def valid_id_simple(i: int) -> bool:
     """determine if the supplied id is valid"""
     s = str(i)
     l = len(s)
@@ -28,6 +36,28 @@ def valid_id(i: int) -> bool:
         return True
     l = l // 2
     return s[:l] != s[l:]
+
+def valid_id_complex(i: int) -> bool:
+    """determine if the supplied id is valid"""
+    s = str(i)
+    l = len(s)
+    half = l // 2
+    # cycle the potential character count ranges from 1 up to half
+    # of the number length.  if the character count does evenly
+    # line up with the string length, the skip that count, otherwise
+    # compare each segment.  invalid if only find matches to the control
+    for c in range(1,half+1):
+        if l % c != 0:
+            continue
+        cntl = s[:c]
+        all_matched = True
+        for idx in range(c,l-c+1,c):
+            if cntl != s[idx:idx+c]:
+                all_matched = False
+                break
+        if all_matched:
+            return False
+    return True
 
 # Data
 data = read_lines("input/day02/input.txt")[0]
@@ -38,5 +68,5 @@ assert solve_part1(sample) == 1227775554
 assert solve_part1(data) == 38437576669
 
 # Part 2
-assert solve_part2(sample) == 0
-assert solve_part2(data) == 0
+assert solve_part2(sample) == 4174379265
+assert solve_part2(data) == 49046150754
