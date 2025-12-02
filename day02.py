@@ -43,9 +43,10 @@ def valid_id_complex(i: int) -> bool:
     l = len(s)
     half = l // 2
     # cycle the potential character count ranges from 1 up to half
-    # of the number length.  if the character count does evenly
-    # line up with the string length, the skip that count, otherwise
-    # compare each segment.  invalid if only find matches to the control
+    # of the number length.  if the character count doesn't evenly
+    # line up with the string length, skip that count, otherwise
+    # compare each segment.  invalid if find a segment count that
+    # matches all segments of the string
     for c in range(1,half+1):
         if l % c != 0:
             continue
