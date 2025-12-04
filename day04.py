@@ -17,7 +17,29 @@ def solve_part1(lines: list) -> int:
 @runner("Day 4", "Part 2")
 def solve_part2(lines: list) -> int:
     """part 2 solving function"""
-    return 0
+    grid = lines.copy()
+    depth = len(grid)
+    width = len(grid[0])
+    removed = 0
+    while True:
+        r, grid = remove_accessible(grid, width, depth)
+        removed += r
+        if r == 0:
+            break
+    return removed
+
+def remove_accessible(grid: list[str], w: int, d: int) -> tuple[int, list[str]]:
+    """remove all of the paper rolls that you can"""
+    to_remove = []
+    for y, line in enumerate(grid):
+        for x, loc in enumerate(line):
+            if loc == '@' and can_access(grid, w, d, x, y):
+                to_remove.append((x,y))
+    for rx, ry in to_remove:
+        adjust = grid[ry]
+        adjust = adjust[:rx] + "." + adjust[rx+1:]
+        grid[ry] = adjust
+    return len(to_remove), grid
 
 def can_access(grid: list[str], w: int, d: int, x: int, y: int) -> bool:
     """determine if location can be accessed"""
@@ -49,5 +71,5 @@ assert solve_part1(sample) == 13
 assert solve_part1(data) == 1419
 
 # Part 2
-assert solve_part2(sample) == 0
-assert solve_part2(data) == 0
+assert solve_part2(sample) == 43
+assert solve_part2(data) == 8739
