@@ -1,11 +1,14 @@
 """Module providing data parsing utilities"""
 
-def read_lines(filename):
+def read_lines(filename, strip=True):
     """return lines from file in list minus new line characters"""
     lines = []
     with open(filename, "r", encoding="utf-8") as handle:
         for line in handle:
-            lines.append(line.rstrip())
+            if strip:
+                lines.append(line.rstrip())
+            else:
+                lines.append(line.rstrip('\r\n'))
     return lines
 
 def parse_integers(line: str, seperator):

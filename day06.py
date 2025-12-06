@@ -18,7 +18,18 @@ def solve_part1(lines: list) -> int:
 @runner("Day 6", "Part 2")
 def solve_part2(lines: list) -> int:
     """part 2 solving function"""
-    return 0
+    equations = parse_equations(lines[-1])
+    values = lines[:-1]
+    total = 0
+    for op, scol, ecol in equations:
+        eq_vals = []
+        for col in range(ecol,scol-1,-1):
+            eq_vals.append([column_number(values,col)])
+        if op == '+':
+            total += add(eq_vals, 0)
+        elif op == '*':
+            total += multiply(eq_vals, 0)
+    return total
 
 def add(values: list[list[int]], column: int) -> int:
     """add the values in the supplied list column"""
@@ -44,8 +55,27 @@ def parse_input(lines: list) -> tuple[list[list[int]],list[chr]]:
     operators = list(lines[-1].split())
     return values, operators
 
+def parse_equations(line: str) -> list[tuple[chr,int,int]]:
+    """find the min/max of each equation column based on operator"""
+    equations = []
+    begin = 0
+    for i, c in enumerate(line):
+        if i > 0 and c in ['*','+']:
+            equations.append((line[begin],begin,i-2))
+            begin = i
+    equations.append((line[begin],begin,len(line)-1))
+    return equations
+
+def column_number(values: list[str], col: int) -> int:
+    """parse a number from a column"""
+    s = ""
+    for line in values:
+        if line[col] != ' ':
+            s += line[col]
+    return int(s)
+
 # Data
-data = read_lines("input/day06/input.txt")
+data = read_lines("input/day06/input.txt", False)
 sample = """123 328  51 64 
  45 64  387 23 
   6 98  215 314
@@ -56,5 +86,5 @@ assert solve_part1(sample) == 4277556
 assert solve_part1(data) == 6725216329103
 
 # Part 2
-assert solve_part2(sample) == 0
-assert solve_part2(data) == 0
+assert solve_part2(sample) == 3263827
+assert solve_part2(data) == 10600728112865
