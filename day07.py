@@ -24,7 +24,18 @@ def solve_part1(lines: list) -> int:
 @runner("Day 7", "Part 2")
 def solve_part2(lines: list) -> int:
     """part 2 solving function"""
-    return 0
+    start_x = lines[0].index("S")
+    beams = {start_x:1}
+    for y in range(2,len(lines)):
+        nbeams = {}
+        for beam, count in beams.items():
+            if lines[y][beam] == '^':
+                nbeams[beam-1] = nbeams.get(beam-1,0) + count
+                nbeams[beam+1] = nbeams.get(beam+1,0) + count
+            else:
+                nbeams[beam] = nbeams.get(beam,0) + count
+        beams = nbeams
+    return sum(beams.values())
 
 # Data
 data = read_lines("input/day07/input.txt")
@@ -50,5 +61,5 @@ assert solve_part1(sample) == 21
 assert solve_part1(data) == 1499
 
 # Part 2
-assert solve_part2(sample) == 0
-assert solve_part2(data) == 0
+assert solve_part2(sample) == 40
+assert solve_part2(data) == 24743903847942
