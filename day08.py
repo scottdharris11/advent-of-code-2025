@@ -55,7 +55,51 @@ def solve_part1(lines: list, connections: int) -> int:
 @runner("Day 8", "Part 2")
 def solve_part2(lines: list) -> int:
     """part 2 solving function"""
-    return 0
+    boxes = parse_boxes(lines)
+    box_count = len(boxes)
+
+    # calculate distances between unique box combinations
+    distances = []
+    for i, a in enumerate(boxes):
+        for b in boxes[i+1:]:
+            d = distance_between(a,b)
+            distances.append((d,a,b))
+    distances.sort(key=lambda d: d[0])
+
+    # connect desired number of boxes, establishing circuts
+    circuits = []
+    circuits_by_box = {}
+    for _, a, b in distances:
+        ac = circuits_by_box.get(a, None)
+        bc = circuits_by_box.get(b, None)
+        if ac is not None and bc is not None:
+            if ac == bc:
+                # already in same circuit, just skip
+                pass
+            else:
+                # joining existing circuits
+                ac.extend(bc)
+                for box in bc:
+                    circuits_by_box[box] = ac
+                circuits.remove(bc)
+        elif ac is not None:
+            ac.append(b)
+            circuits_by_box[b] = ac
+        elif bc is not None:
+            bc.append(a)
+            circuits_by_box[a] = bc
+        else:
+            # new cicuit
+            circuit = [a, b]
+            circuits.append(circuit)
+            circuits_by_box[a] = circuit
+            circuits_by_box[b] = circuit
+
+        # check to see if all boxes are in a single circuit and if, so
+        # then return the x coordinate multiple as result
+        if len(circuits) == 1 and len((circuits[0])) == box_count:
+            return a[0] * b[0]
+    return -1
 
 def distance_between(a: tuple[int,int,int], b: tuple[int,int,int]) -> float:
     """calculate the straight line distance between two junction boxes"""
@@ -99,5 +143,5 @@ assert solve_part1(sample, 10) == 40
 assert solve_part1(data, 1000) == 140008
 
 # Part 2
-assert solve_part2(sample) == 0
-assert solve_part2(data) == 0
+assert solve_part2(sample) == 25272
+assert solve_part2(data) == 9253260633
