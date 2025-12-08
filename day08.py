@@ -7,45 +7,8 @@ from utilities.runner import runner
 def solve_part1(lines: list, connections: int) -> int:
     """part 1 solving function"""
     boxes = parse_boxes(lines)
-
-    # calculate distances between unique box combinations
-    distances = []
-    for i, a in enumerate(boxes):
-        for b in boxes[i+1:]:
-            d = distance_between(a,b)
-            distances.append((d,a,b))
-    distances.sort(key=lambda d: d[0])
-
-    # connect desired number of boxes, establishing circuts
-    circuits = []
-    circuits_by_box = {}
-    for _, a, b in distances[:connections]:
-        ac = circuits_by_box.get(a, None)
-        bc = circuits_by_box.get(b, None)
-        if ac is not None and bc is not None:
-            if ac == bc:
-                # already in same circuit, just skip
-                pass
-            else:
-                # joining existing circuits
-                ac.extend(bc)
-                for box in bc:
-                    circuits_by_box[box] = ac
-                circuits.remove(bc)
-        elif ac is not None:
-            ac.append(b)
-            circuits_by_box[b] = ac
-        elif bc is not None:
-            bc.append(a)
-            circuits_by_box[a] = bc
-        else:
-            # new cicuit
-            circuit = [a, b]
-            circuits.append(circuit)
-            circuits_by_box[a] = circuit
-            circuits_by_box[b] = circuit
-
-    # build result off the length of 3 largest circuits
+    distances = connection_distances(boxes)
+    circuits, _ = build_circuits(distances, connections, len(boxes))
     circuits.sort(key=len, reverse=True)
     result = 1
     for c in circuits[:3]:
@@ -56,20 +19,31 @@ def solve_part1(lines: list, connections: int) -> int:
 def solve_part2(lines: list) -> int:
     """part 2 solving function"""
     boxes = parse_boxes(lines)
-    box_count = len(boxes)
+    distances = connection_distances(boxes)
+    _, result = build_circuits(distances, len(distances), len(boxes))
+    return result
 
-    # calculate distances between unique box combinations
+def connection_distances(boxes: list[tuple[int,int,int]]) -> list[tuple]:
+    """calculate distances between all junction boxes"""
     distances = []
     for i, a in enumerate(boxes):
         for b in boxes[i+1:]:
             d = distance_between(a,b)
             distances.append((d,a,b))
     distances.sort(key=lambda d: d[0])
+    return distances
 
-    # connect desired number of boxes, establishing circuts
+def distance_between(a: tuple[int,int,int], b: tuple[int,int,int]) -> float:
+    """calculate the straight line distance between two junction boxes"""
+    ax, ay, az = a
+    bx, by, bz = b
+    return sqrt((ax-bx)**2 + (ay-by)**2 + (az-bz)**2)
+
+def build_circuits(connections: list[tuple], limit: int, box_count: int) -> tuple[list,int]:
+    """build circuits from the supplied connections"""
     circuits = []
     circuits_by_box = {}
-    for _, a, b in distances:
+    for _, a, b in connections[:limit]:
         ac = circuits_by_box.get(a, None)
         bc = circuits_by_box.get(b, None)
         if ac is not None and bc is not None:
@@ -98,14 +72,8 @@ def solve_part2(lines: list) -> int:
         # check to see if all boxes are in a single circuit and if, so
         # then return the x coordinate multiple as result
         if len(circuits) == 1 and len((circuits[0])) == box_count:
-            return a[0] * b[0]
-    return -1
-
-def distance_between(a: tuple[int,int,int], b: tuple[int,int,int]) -> float:
-    """calculate the straight line distance between two junction boxes"""
-    ax, ay, az = a
-    bx, by, bz = b
-    return sqrt((ax-bx)**2 + (ay-by)**2 + (az-bz)**2)
+            return circuits, a[0] * b[0]
+    return circuits, -1
 
 def parse_boxes(lines: list[str]) -> list[tuple[int,int,int]]:
     """parse junction boxes from input"""
