@@ -73,7 +73,7 @@ class Floor:
         return False
 
     def is_horizontal(self, y: int, a: int, b: int) -> bool:
-        """determine if points a and b are the end points of horizontal line at x"""
+        """determine if points a and b are the end points of horizontal line at y"""
         if y in self.horizontal:
             for horz in self.horizontal.get(y,[]):
                 if (horz[0] == a and horz[1] == b) or (horz[0] == b and horz[1] == a):
@@ -81,7 +81,7 @@ class Floor:
         return False
 
     def crosses_vert_edge(self, a: tuple[int,int], b: tuple[int,int]) -> bool:
-        """determine if the supplied horizontal line crosses a vertical edge"""
+        """determine if the supplied horizontal plane crosses a vertical edge"""
         ya = a[1]
         yb = b[1]
         xa, xb = (a[0]+1,b[0]-1)
@@ -95,7 +95,7 @@ class Floor:
         return False
 
     def crosses_horz_edge(self, a: tuple[int,int], b: tuple[int,int]) -> bool:
-        """determine if the supplied vertical line crosses a horizontal edge"""
+        """determine if the supplied vertical plane crosses a horizontal edge"""
         xa = a[0]
         xb = a[1]
         ya, yb = (a[1]+1,b[1]-1)
