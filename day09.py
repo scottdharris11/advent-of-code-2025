@@ -24,7 +24,7 @@ def solve_part2(lines: list) -> int:
             t = area(a,b)
             if t > max_area:
                 if red_green_area(a,b,floor):
-                    print(f"found valid area between {a} and {b} of area {t}")
+                    #print(f"found valid area between {a} and {b} of area {t}")
                     max_area = t
     return max_area
 
@@ -82,23 +82,29 @@ class Floor:
 
     def crosses_vert_edge(self, a: tuple[int,int], b: tuple[int,int]) -> bool:
         """determine if the supplied horizontal line crosses a vertical edge"""
-        y = a[1]
+        ya = a[1]
+        yb = b[1]
         xa, xb = (a[0]+1,b[0]-1)
         for x, verts in self.vertical.items():
             if xa <= x <= xb:
-                for vert in verts:
-                    if vert[0] < y < vert[1]:
+                for sy, ey in verts:
+                    if sy <= ya < ey:
+                        return True
+                    if ya < sy < yb:
                         return True
         return False
 
     def crosses_horz_edge(self, a: tuple[int,int], b: tuple[int,int]) -> bool:
         """determine if the supplied vertical line crosses a horizontal edge"""
-        x = a[0]
+        xa = a[0]
+        xb = a[1]
         ya, yb = (a[1]+1,b[1]-1)
         for y, horzs in self.horizontal.items():
             if ya <= y <= yb:
-                for horz in horzs:
-                    if horz[0] < x < horz[1]:
+                for sx, ex in horzs:
+                    if sx <= xa < ex:
+                        return True
+                    if xa < sx < xb:
                         return True
         return False
 
@@ -156,9 +162,9 @@ def red_green_area(a: tuple[int,int], b: tuple[int,int], floor: Floor) -> bool:
     if a[1] == b[1]:
         return floor.is_horizontal(a[1],a[0],b[0])
     tl, tr, bl, br = rect_corners(a,b)
-    if floor.crosses_vert_edge(tl,tr) or floor.crosses_vert_edge(bl,br):
+    if floor.crosses_vert_edge(tl,br):
         return False
-    if floor.crosses_horz_edge(tl,bl) or floor.crosses_horz_edge(tr,br):
+    if floor.crosses_horz_edge(tl,br):
         return False
     return floor.inside_area(tl,tr,bl,br)
 
@@ -205,4 +211,4 @@ assert solve_part1(data) == 4729332959
 
 # Part 2
 assert solve_part2(sample) == 24
-assert solve_part2(data) < 2437724873 # answer too high
+assert solve_part2(data) == 1474477524
