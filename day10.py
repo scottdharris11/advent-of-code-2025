@@ -23,14 +23,11 @@ def solve_part2(lines: list) -> int:
     min_presses = 0
     for i, line in enumerate(lines):
         m = Machine(line)
-        print(f"{m.buttons}")
-        global check_valid
-        check_valid = 0
-        buttons = sorted(m.buttons, key=lambda p: len(p.joltages), reverse=True)
-        mjp = min_joltage_presses(m, buttons, {}, 0, None)
-        print(f"checked {check_valid}")
-        print(f"minimum presses for machine {i+1} of {len(lines)}: {mjp}")
-        min_presses += mjp
+        matrix = machine_to_matrix(m)
+        print(f"Before: {matrix}")
+        free = []
+        matrix = reduced_row_echelon(matrix, 0, 0, free)
+        print(f"After: {matrix} || {free}")
     return min_presses
 
 class Button:
@@ -209,6 +206,57 @@ def min_joltage_presses(m: Machine, buttons: list[Button], clicks: dict, csum: i
     clicks.pop(idx, None)
     return mval
 
+def machine_to_matrix(m: Machine) -> list[list[int]]:
+    """build matrix of buttons/joltages for machine"""
+    matrix = [[0] * (len(m.buttons) + 1) for _ in range(m.light_count)]
+    for btn in m.buttons:
+        for j in btn.joltages:
+            matrix[j][btn.idx] = 1
+    for i, j in enumerate(m.joltage):
+        matrix[i][-1] = j
+    return matrix
+
+def reduced_row_echelon(m: list[list[int]], row: int, col: int, free: list[int]) -> list[list[int]]:
+    """recursively adjust matrix until achieving reduced row echelon format"""
+    # done when run out of rows or columns (extra columns when running out of rows are free)
+    if row >= len(m) or col >= len(m[0]) - 1:
+        for c in range(col, len(m[0]) - 1):
+            free.append(c)
+        return m
+
+    # locate first row (at or below supplied row index) with 1 value in
+    # supplied column.  If necessary swap that row with supplied index.
+    # if none found, then skip that column (mark as free)
+    prow = None
+    for r in range(row, len(m)):
+        if m[r][col] != 0:
+            prow = r
+            break
+    if prow is None:
+        free.append(col)
+        return reduced_row_echelon(m, row, col+1, free)
+    if prow > row:
+        hold = m[row]
+        m[row] = m[prow]
+        m[prow] = hold
+
+    # normalize the row values if the column value is not already "1"
+    if m[row][col] != 1:
+        adjust = 1 / m[row][col]
+        for i, v in enumerate(m[row]):
+            m[row][i] = int(m[row][i] * adjust)
+
+    # zero out row values in column before and after the row by
+    # subtracting the current row from the row with the value
+    current = m[row]
+    for r, vals in enumerate(m):
+        if r == row or vals[col] == 0:
+            continue
+        adjust = vals[col]
+        for i, v in enumerate(vals):
+            vals[i] = v - (current[i] * adjust)
+    return reduced_row_echelon(m, row+1, col+1, free)
+
 # Data
 data = read_lines("input/day10/input.txt")
 sample = """[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
@@ -220,5 +268,5 @@ sample = """[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
 #assert solve_part1(data) == 498
 
 # Part 2
-#assert solve_part2(sample) == 33
-assert solve_part2(data) == 0
+assert solve_part2(sample) == 33
+#assert solve_part2(data) == 0
