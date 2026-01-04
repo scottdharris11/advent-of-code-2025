@@ -2,8 +2,6 @@
 from utilities.data import read_lines
 from utilities.runner import runner
 
-check_valid = 0
-
 @runner("Day 10", "Part 1")
 def solve_part1(lines: list) -> int:
     """part 1 solving function"""
@@ -24,10 +22,16 @@ def solve_part2(lines: list) -> int:
     for i, line in enumerate(lines):
         m = Machine(line)
         matrix = machine_to_matrix(m)
-        print(f"Before: {matrix}")
         free = []
         matrix = reduced_row_echelon(matrix, 0, 0, free)
-        print(f"After: {matrix} || {free}")
+        mip = min_joltage_presses(m, matrix, free, {})
+        if mip is None:
+            print(f"NO SOLUTION FOUND FOR MACHINE {i+1}")
+            print(f"Before: {machine_to_matrix(m)}")
+            print(f"After: {matrix} || {free}")
+            continue
+        min_presses += mip
+        #print(f"minimum presses for machine {i+1} of {len(lines)}: {mip}")
     return min_presses
 
 class Button:
@@ -38,11 +42,9 @@ class Button:
         for b in s[1:-1].split(','):
             joltages.append(int(b))
         self.joltages = tuple(joltages)
-        self.min_click = 0
-        self.max_click = None
 
     def __repr__(self):
-        return str((self.idx,self.joltages,self.min_click,self.max_click))
+        return str((self.idx,self.joltages))
 
 class Machine:
     """structure represents a machine"""
@@ -73,8 +75,6 @@ class Machine:
                         break
             jtb[i] = mapped
         self.joltage_to_buttons = jtb
-        self.max_joltage = max(self.joltage)
-        self.__base_button_ranges()
 
     def __repr__(self):
         return str((self.light_count,self.init_pattern, self.buttons, self.joltage))
@@ -125,48 +125,6 @@ class Machine:
                 return False
         return True
 
-    def still_valid(self, known: dict) -> bool:
-        """determine if valid joltage still achievable with current clicks"""
-        ja = list(self.joltage)
-        for bi, bc in known.items():
-            for j in self.buttons[bi].joltages:
-                ja[j] -= bc
-        for ji, bis in self.joltage_to_buttons.items():
-            max_all = 0
-            for bi in bis:
-                if bi in known:
-                    continue
-                max_all += self.buttons[bi].max_click
-            if max_all < ja[ji]:
-                return False
-        return True
-
-    def __base_button_ranges(self) -> None:
-        """establish base button ranges"""
-        for button in self.buttons:
-            for ji in button.joltages:
-                j = self.joltage[ji]
-                if button.max_click is None or j < button.max_click:
-                    button.max_click = j
-        changed = True
-        while changed:
-            changed = False
-            for ji, bis in self.joltage_to_buttons.items():
-                max_all = 0
-                jam = self.joltage[ji]
-                for bi in bis:
-                    max_all += self.buttons[bi].max_click
-                    jam -= self.buttons[bi].min_click
-                for bi in bis:
-                    button = self.buttons[bi]
-                    max_other = max_all - button.max_click
-                    if jam + button.min_click < button.max_click:
-                        button.max_click = jam + button.min_click
-                        changed = True
-                    if max_other < jam and button.max_click - max_other > button.min_click:
-                        button.min_click = button.max_click - max_other
-                        changed = True
-
 def min_init_presses(m: Machine, states: set, presses: int, seen: set) -> int:
     """minimum number of button presses to reach machine initializaation state"""
     next_states = set()
@@ -180,31 +138,6 @@ def min_init_presses(m: Machine, states: set, presses: int, seen: set) -> int:
             next_states.add(next_state)
             seen.add(next_state)
     return min_init_presses(m, next_states, presses+1, seen)
-
-def min_joltage_presses(m: Machine, buttons: list[Button], clicks: dict, csum: int, mval: int) -> int:
-    """minimum number of button presses to reach machine joltage state"""
-    if len(buttons) == 0:
-        if csum >= m.max_joltage and (mval is None or csum < mval):
-            global check_valid
-            check_valid += 1
-            if check_valid % 1000 == 0:
-                print(f"still checking, checked {check_valid}")
-            if m.valid_clicks(clicks):
-                mval = csum
-        return mval
-    minr, maxr = m.click_range(buttons[0], clicks)
-    if mval is not None and maxr + csum > mval:
-        maxr = mval - csum
-    idx = buttons[0].idx
-    if minr > maxr:
-        return mval
-    #print(f"range for button {idx} is between {minr} and {maxr}")
-    for c in range(minr, maxr+1):
-        clicks[idx] = c
-        if m.still_valid(clicks):
-            mval = min_joltage_presses(m,buttons[1:],clicks,csum+c,mval)
-    clicks.pop(idx, None)
-    return mval
 
 def machine_to_matrix(m: Machine) -> list[list[int]]:
     """build matrix of buttons/joltages for machine"""
@@ -257,6 +190,42 @@ def reduced_row_echelon(m: list[list[int]], row: int, col: int, free: list[int])
             vals[i] = v - (current[i] * adjust)
     return reduced_row_echelon(m, row+1, col+1, free)
 
+def min_joltage_presses(m: Machine, matrix: list[list[int]], free: list[int], clicks: dict) -> int:
+    """minimum number of button presses to reach machine joltage state"""
+    if len(free) == 0:
+        fill_clicks(matrix, clicks)
+        if m.valid_clicks(clicks):
+            return sum(clicks.values())
+        return None
+    minr, maxr = m.click_range(m.buttons[free[0]], clicks)
+    mval = None
+    for c in range(minr, maxr+1):
+        clicks[free[0]] = c
+        v = min_joltage_presses(m,matrix,free[1:],clicks)
+        if v is not None and (mval is None or v < mval):
+            mval = v
+    clicks.pop(free[0],None)
+    return mval
+
+def fill_clicks(matrix: list[list[int]], clicks: dict[int,int]):
+    """fill clicks until all equations are satisified"""
+    changed = True
+    while changed:
+        changed = False
+        for e in matrix:
+            result = e[-1]
+            notfilled = []
+            for c, v in enumerate(e[:-1]):
+                if v == 0:
+                    continue
+                if c in clicks:
+                    result -= clicks[c] * v
+                else:
+                    notfilled.append(c)
+            if len(notfilled) == 1:
+                clicks[notfilled[0]] = result * e[notfilled[0]]
+                changed = True
+
 # Data
 data = read_lines("input/day10/input.txt")
 sample = """[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
@@ -269,4 +238,4 @@ sample = """[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
 
 # Part 2
 assert solve_part2(sample) == 33
-#assert solve_part2(data) == 0
+assert solve_part2(data) == 0
