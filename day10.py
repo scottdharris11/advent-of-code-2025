@@ -19,17 +19,12 @@ def solve_part1(lines: list) -> int:
 def solve_part2(lines: list) -> int:
     """part 2 solving function"""
     min_presses = 0
-    for i, line in enumerate(lines):
+    for _, line in enumerate(lines):
         m = Machine(line)
         matrix = machine_to_matrix(m)
         free = []
         matrix = reduced_row_echelon(matrix, 0, 0, free)
         mip = min_joltage_presses(m, matrix, free, {})
-        if mip is None:
-            print(f"NO SOLUTION FOUND FOR MACHINE {i+1}")
-            print(f"Before: {machine_to_matrix(m)}")
-            print(f"After: {matrix} || {free}")
-            continue
         min_presses += mip
         #print(f"minimum presses for machine {i+1} of {len(lines)}: {mip}")
     return min_presses
@@ -177,7 +172,7 @@ def reduced_row_echelon(m: list[list[int]], row: int, col: int, free: list[int])
     if m[row][col] != 1:
         adjust = 1 / m[row][col]
         for i, v in enumerate(m[row]):
-            m[row][i] = int(m[row][i] * adjust)
+            m[row][i] = m[row][i] * adjust
 
     # zero out row values in column before and after the row by
     # subtracting the current row from the row with the value
@@ -193,9 +188,9 @@ def reduced_row_echelon(m: list[list[int]], row: int, col: int, free: list[int])
 def min_joltage_presses(m: Machine, matrix: list[list[int]], free: list[int], clicks: dict) -> int:
     """minimum number of button presses to reach machine joltage state"""
     if len(free) == 0:
-        fill_clicks(matrix, clicks)
-        if m.valid_clicks(clicks):
-            return sum(clicks.values())
+        filled = fill_clicks(matrix, clicks)
+        if filled is not None and m.valid_clicks(filled):
+            return sum(filled.values())
         return None
     minr, maxr = m.click_range(m.buttons[free[0]], clicks)
     mval = None
@@ -207,8 +202,10 @@ def min_joltage_presses(m: Machine, matrix: list[list[int]], free: list[int], cl
     clicks.pop(free[0],None)
     return mval
 
-def fill_clicks(matrix: list[list[int]], clicks: dict[int,int]):
+def fill_clicks(matrix: list[list[int]], known: dict[int,int]) -> dict[int,int]:
     """fill clicks until all equations are satisified"""
+    clicks = {}
+    clicks.update(known)
     changed = True
     while changed:
         changed = False
@@ -223,8 +220,12 @@ def fill_clicks(matrix: list[list[int]], clicks: dict[int,int]):
                 else:
                     notfilled.append(c)
             if len(notfilled) == 1:
-                clicks[notfilled[0]] = result * e[notfilled[0]]
+                clicked = round(result * e[notfilled[0]])
+                if clicked < 0:
+                    return None
+                clicks[notfilled[0]] = clicked
                 changed = True
+    return clicks
 
 # Data
 data = read_lines("input/day10/input.txt")
@@ -233,9 +234,9 @@ sample = """[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
 [.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}""".splitlines()
 
 # Part 1
-#assert solve_part1(sample) == 7
-#assert solve_part1(data) == 498
+assert solve_part1(sample) == 7
+assert solve_part1(data) == 498
 
 # Part 2
 assert solve_part2(sample) == 33
-assert solve_part2(data) == 0
+assert solve_part2(data) == 17133
