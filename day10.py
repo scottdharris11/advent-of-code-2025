@@ -24,7 +24,8 @@ def solve_part2(lines: list) -> int:
         matrix = machine_to_matrix(m)
         free = []
         matrix = reduced_row_echelon(matrix, 0, 0, free)
-        mip = min_joltage_presses(m, matrix, free, {})
+        matrix, known = fill_known(matrix)
+        mip = min_joltage_presses(m, matrix, free, known)
         min_presses += mip
         #print(f"minimum presses for machine {i+1} of {len(lines)}: {mip}")
     return min_presses
@@ -202,6 +203,28 @@ def min_joltage_presses(m: Machine, matrix: list[list[int]], free: list[int], cl
     clicks.pop(free[0],None)
     return mval
 
+def fill_known(matrix: list[list[int]]) -> tuple[list[list[int]],dict[int,int]]:
+    """establish variables that are known without others"""
+    known = {}
+    nmatrix = []
+    for e in matrix:
+        result = e[-1]
+        multiple = False
+        only_col = None
+        for c, v in enumerate(e[:-1]):
+            if v == 0:
+                continue
+            if only_col is None:
+                only_col = c
+            else:
+                multiple = True
+        if not multiple:
+            if only_col is not None:
+                known[only_col] = round(result * e[only_col])
+        else:
+            nmatrix.append(e)
+    return nmatrix, known
+
 def fill_clicks(matrix: list[list[int]], known: dict[int,int]) -> dict[int,int]:
     """fill clicks until all equations are satisified"""
     clicks = {}
@@ -211,19 +234,23 @@ def fill_clicks(matrix: list[list[int]], known: dict[int,int]) -> dict[int,int]:
         changed = False
         for e in matrix:
             result = e[-1]
-            notfilled = []
+            multiple = False
+            only_col = None
             for c, v in enumerate(e[:-1]):
                 if v == 0:
                     continue
                 if c in clicks:
                     result -= clicks[c] * v
                 else:
-                    notfilled.append(c)
-            if len(notfilled) == 1:
-                clicked = round(result * e[notfilled[0]])
+                    if only_col is None:
+                        only_col = c
+                    else:
+                        multiple = True
+            if not multiple and only_col is not None:
+                clicked = round(result * e[only_col])
                 if clicked < 0:
                     return None
-                clicks[notfilled[0]] = clicked
+                clicks[only_col] = clicked
                 changed = True
     return clicks
 
